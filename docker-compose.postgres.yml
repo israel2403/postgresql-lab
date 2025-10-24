@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: pg18
+    ports:
+      - "${PG_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-postgres}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+      POSTGRES_DB: "${POSTGRES_DB:-labdb}"
+      # Init options: UTF-8 encoding, ICU collation (PG18 defaults improve collation behavior)
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+      TZ: "${TZ:-America/Mexico_City}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+    volumes:
+      # Persistent database files (use named volume by default)
+      - pg18-data:/var/lib/postgresql/data
+      # Optional: bind-mount instead of named volume (uncomment to use local ./data folder)
+      # - ./data:/var/lib/postgresql/data
+      # Seed scripts that run ONCE at first init
+      - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
+      # Custom configs (postgresql.conf/pg_hba.conf). PG will use postgresql.conf if pointed via command.
+      - ./docker/postgres/conf:/etc/postgresql/custom:ro
+    command: >
+      postgres -c config_file=/etc/postgresql/custom/postgresql.conf
+               -c hba_file=/etc/postgresql/custom/pg_hba.conf
+
+  # Lightweight DB GUI (pick ONE: pgAdmin or Adminer). pgAdmin doc & image tags here. :contentReference[oaicite:1]{index=1}
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "${PGADMIN_DEFAULT_EMAIL:-admin@example.com}"
+      PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD:-admin}"
+      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "True"
+      PGADMIN_CONFIG_LOGIN_BANNER: "Authorized users only."
+      TZ: "${TZ:-America/Mexico_City}"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+      # Optional: pre-register servers in pgAdmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+
+  # Alternative ultra-simple admin UI (commented by default). Adminer official image. :contentReference[oaicite:2]{index=2}
+  # adminer:
+  #   image: adminer:latest
+  #   container_name: adminer
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   ports:
+  #     - "8080:8080"
+
+volumes:
+  pg18-data:
+  pgadmin-data:
