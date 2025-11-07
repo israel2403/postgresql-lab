@@ -18,7 +18,7 @@ services:
       retries: 40
     volumes:
       # Persistent database files (use named volume by default)
-      - pg18-data:/var/lib/postgresql/data
+      - pg18-lib:/var/lib/postgresql
       # Optional: bind-mount instead of named volume (uncomment to use local ./data folder)
       # - ./data:/var/lib/postgresql/data
       # Seed scripts that run ONCE at first init
@@ -60,5 +60,5 @@ services:
   #     - "8080:8080"
 
 volumes:
-  pg18-data:
+  pg18-lib:
   pgadmin-data:

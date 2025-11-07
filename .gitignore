@@ -1,0 +1,8 @@
+# Docker
+data/
+backups/
+pgadmin/
+**/*.log
+
+# Local env
+.env
